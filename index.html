@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="ERP Pocket" />
+  <title>ERP Pocket v2.0 — Demo Chocolate</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="styles.css" />
+
+  <style>
+    /* Corrección final: asegura que el splash no bloquee la app cuando termina de cargar */
+    #splash.hidden {
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div id="splash" class="splash">
+    <div class="splash-card">
+      <div class="splash-badge">EP</div>
+      <h1>ERP Pocket v2.0</h1>
+      <p>Demo de chocolate, kardex, producción, gastos y reportes offline.</p>
+      <div class="progress"></div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <main class="app shell">
+    <header class="header">
+      <div class="brand">
+        <div class="logo">EP</div>
+        <div>
+          <h1 id="companyName">ERP Pocket</h1>
+          <p>App profesional offline para teléfonos, tablet y PC</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button id="themeToggle" class="ghost-btn" title="Cambiar tema">🌙 Oscuro</button>
+        <button id="btnInstall" class="primary-btn" style="display:none">Instalar</button>
+        <button id="btnUndo" class="ghost-btn" title="Deshacer última acción">↩️ Deshacer</button>
+        <button id="btnDemo" class="success-btn" title="Cargar demo chocolate">Cargar Empresa Demo</button>
+        <button id="btnHelp" class="ghost-btn" title="Manual de ayuda">📘 Ayuda</button>
+        <button id="btnCalculator" class="ghost-btn" title="Calculadora integrada">🧮 Calc</button>
+        <button id="btnCalendar" class="ghost-btn" title="Calendario">🗓️ Calendario</button>
+        <button id="btnQuick" class="primary-btn" title="Acciones rápidas">⚡ Acciones</button>
+      </div>
+    </header>
+
+    <section class="toolbar">
+      <div class="field">
+        <label>Búsqueda instantánea</label>
+        <input id="globalSearch" type="search" placeholder="Buscar productos, movimientos, clientes..." />
+      </div>
+      <div class="field">
+        <label>Desde</label>
+        <input id="dateFrom" type="date" />
+      </div>
+      <div class="field">
+        <label>Hasta</label>
+        <input id="dateTo" type="date" />
+      </div>
+      <div class="field">
+        <label>Categoría</label>
+        <select id="categoryFilter">
+          <option value="">Todas</option>
+          <option value="Mercadería">Mercadería</option>
+          <option value="Materia Prima Directa">Materia Prima Directa</option>
+          <option value="Materia Prima Indirecta">Materia Prima Indirecta</option>
+          <option value="Producto en Proceso">Producto en Proceso</option>
+          <option value="Producto Terminado">Producto Terminado</option>
+          <option value="Suministro">Suministro</option>
+          <option value="Activo">Activo</option>
+          <option value="Servicio">Servicio</option>
+        </select>
+      </div>
+      <div class="field" style="max-width:160px">
+        <label>&nbsp;</label>
+        <button id="btnClearFilters" class="ghost-btn">Limpiar filtros</button>
+      </div>
+    </section>
+
+    <section id="dashboard" class="screen active">
+      <div class="kpi-grid" id="kpiGrid"></div>
+
+      <div class="cards-2" style="margin-top:14px">
+        <article class="card canvas-card">
+          <div class="screen-head">
+            <div>
+              <h2 class="section-title">Dashboard financiero</h2>
+              <p class="section-sub">Ventas, compras y costos del demo de chocolate para explicar el negocio en clase.</p>
+            </div>
+          </div>
+          <div class="canvas-wrap"><canvas id="chartSales"></canvas></div>
+        </article>
+
+        <article class="card canvas-card">
+          <div class="screen-head">
+            <div>
+              <h2 class="section-title">Gastos por categoría</h2>
+              <p class="section-sub">Separa costos, gastos y otras cargas del período.</p>
+            </div>
+          </div>
+          <div class="canvas-wrap"><canvas id="chartExpenses"></canvas></div>
+        </article>
+      </div>
+
+      <div class="cards-2" style="margin-top:14px">
+        <article class="card canvas-card">
+          <div class="screen-head">
+            <div>
+              <h2 class="section-title">Inventario valorizado</h2>
+              <p class="section-sub">Productos con mayor valor económico.</p>
+            </div>
+          </div>
+          <div class="canvas-wrap"><canvas id="chartInventory"></canvas></div>
+        </article>
+
+        <article class="card canvas-card">
+          <div class="screen-head">
+            <div>
+              <h2 class="section-title">Distribución de resultados</h2>
+              <p class="section-sub">Ventas, costo de ventas, gastos, utilidad o pérdida.</p>
+            </div>
+          </div>
+          <div class="canvas-wrap"><canvas id="chartProfit"></canvas></div>
+        </article>
+      </div>
+
+      <div class="cards-2" style="margin-top:14px">
+        <article class="card">
+          <div class="screen-head">
+            <div>
+              <h2 class="section-title">Resumen automático</h2>
+              <p class="section-sub">Indicadores listos para exponer.</p>
+            </div>
+          </div>
+          <div id="dashboardStats" class="summary-grid"></div>
+        </article>
+
+        <article class="card">
+          <div class="screen-head">
+            <div>
+              <h2 class="section-title">Alertas inteligentes</h2>
+              <p class="section-sub">Clasificación por impacto y urgencia.</p>
+            </div>
+          </div>
+          <div id="alertsList" class="alerts-grid"></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="inventory" class="screen" style="margin-top:14px">
+      <article class="card">
+        <div class="screen-head">
+          <div>
+            <h2 class="section-title">Inventario</h2>
+            <p class="section-sub">CRUD completo con búsqueda, filtros, edición, duplicado y eliminación segura.</p>
+          </div>
+          <div class="row-actions">
+            <button id="btnNewProduct" class="primary-btn">+ Nuevo producto</button>
+            <button id="btnExportProducts" class="ghost-btn">Exportar Excel/CSV</button>
+          </div>
+        </div>
+        <div class="toolbar" style="margin-bottom:12px">
+          <div class="field">
+            <label>Buscar producto</label>
+            <input id="productSearch" type="search" placeholder="Código, nombre, tipo, proveedor..." />
+          </div>
+          <div class="field" style="max-width:280px">
+            <label>Filtrar por tipo</label>
+            <select id="productCategory">
+              <option value="">Todos</option>
+              <option value="Mercadería">Mercadería</option>
+              <option value="Materia Prima Directa">Materia Prima Directa</option>
+              <option value="Materia Prima Indirecta">Materia Prima Indirecta</option>
+              <option value="Producto en Proceso">Producto en Proceso</option>
+              <option value="Producto Terminado">Producto Terminado</option>
+              <option value="Suministro">Suministro</option>
+              <option value="Activo">Activo</option>
+              <option value="Servicio">Servicio</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Código</th><th>Nombre</th><th>Tipo</th><th>Unidad</th><th class="right">Costo</th><th class="right">Precio</th><th class="right">Stock</th><th class="right">Mín</th><th class="right">Máx</th><th>Estado</th><th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="productTable"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+    <section id="kardex" class="screen" style="margin-top:14px">
+      <div class="cards-2">
+        <article class="card">
+          <div class="screen-head">
+            <div>
+              <h2 class="section-title">Kardex profesional</h2>
+              <p class="section-sub">Promedio ponderado móvil, saldo y valorización automática.</p>
+            </div>
+            <div class="row-actions">
+              <button id="btnRefreshKardex" class="ghost-btn">Actualizar</button>
+              <button id="btnExportKardex" class="ghost-btn">Exportar CSV</button>
+            </div>
+          </div>
+          <div class="toolbar" style="margin-bottom:12px">
+            <div class="field">
+              <label>Producto</label>
+              <select id="kardexProduct"></select>
+            </div>
+            <div class="field">
+              <label>Desde</label>
+              <input id="kardexFrom" type="date" />
+            </div>
+            <div class="field">
+              <label>Hasta</label>
+              <input id="kardexTo" type="date" />
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fecha</th><th>Tipo</th><th>Documento</th><th>Entidad</th><th class="right">Entrada</th><th class="right">Salida</th><th class="right">Costo unit.</th><th class="right">Costo prom.</th><th class="right">Saldo</th><th class="right">Valor saldo</th>
+                </tr>
+              </thead>
+              <tbody id="kardexTable"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="screen-head">
+            <div>
+              <h2 class="section-title">Indicaciones de uso</h2>
+              <p class="section-sub">Mensajes claros para que cualquiera entienda el flujo.</p>
+            </div>
+          </div>
+          <div id="statementList" class="grid"></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="operations" class="screen" style="margin-top:14px">
+      <div class="cards-2">
+        <article class="card">
+          <div class="screen-head">
+            <div>
+              <h2 class="section-title">Compras</h2>
+              <p class="section-sub">Automatiza IGV, registra CIF y actualiza kardex.</p>
+            </div>
+            <button id="btnSaveBuy" class="success-btn">Guardar compra</button>
+          </div>
+          <div class="modal-grid two">
+            <div class="field"><label>Fecha</label><input id="buyDate" type="date" /></div>
+            <div class="field"><label>Tipo de compra</label>
+              <select id="buyType">
+                <option>Mercadería</option>
+                <option>Material Directo</option>
+                <option>Material Indirecto</option>
+                <option>Servicios</option>
+                <option>Activo fijo</option>
+              </select>
+            </div>
+            <div class="field"><label>Producto</label><select id="buyProduct"></select></div>
+            <div class="field"><label>Proveedor</label><input id="buyProvider" type="text" placeholder="Proveedor SAC" /></div>
+            <div class="field"><label>Documento</label><input id="buyDocument" type="text" placeholder="F001-0001" /></div>
+            <div class="field"><label>Cantidad</label><input id="buyQty" type="number" step="0.01" value="0" /></div>
+            <div class="field"><label>Costo unitario</label><input id="buyUnitCost" type="number" step="0.01" value="0" /></div>
+            <div class="field"><label>IGV automático</label><input id="buyTax" type="number" step="0.01" value="0" /></div>
+            <div class="field"><label>Observación</label><input id="buyNote" type="text" placeholder="Detalle breve" /></div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="screen-head">
+            <div>
+              <h2 class="section-title">Ventas</h2>
+              <p class="section-sub">Bloquea stock insuficiente con alerta roja.</p>
+            </div>
+            <button id="btnSaveSale" class="success-btn">Guardar venta</button>
+          </div>
+          <div class="modal-grid two">
+            <div class="field"><label>Fecha</label><input id="saleDate" type="date" /></div>
+            <div class="field"><label>Documento</label><input id="saleDocument" type="text" placeholder="B001-0001" /></div>
+            <div class="field"><label>Cliente</label><input id="saleCustomer" type="text" placeholder="Cliente final" /></div>
+            <div class="field"><label>Producto</label><select id="saleProduct"></select></div>
+            <div class="field"><label>Cantidad</label><input id="saleQty" type="number" step="0.01" value="0" /></div>
+            <div class="field"><label>Precio sin IGV</label><input id="saleUnitPrice" type="number" step="0.01" value="0" /></div>
+            <div class="field"><label>IGV automático</label><input id="saleTax" type="number" step="0.01" value="0" /></div>
+            <div class="field"><label>Nota</label><input id="saleNote" type="text" placeholder="Contado / crédito" /></div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="screen-head">
+            <div>
+              <h2 class="section-title">Pérdidas de inventario</h2>
+              <p class="section-sub">Merma, robo, vencimiento, daño y otros.</p>
+            </div>
+            <button id="btnSaveLoss" class="success-btn">Guardar pérdida</button>
+          </div>
+          <div class="modal-grid two">
+            <div class="field"><label>Fecha</label><input id="lossDate" type="date" /></div>
+            <div class="field"><label>Producto</label><select id="lossProduct"></select></div>
+            <div class="field"><label>Cantidad</label><input id="lossQty" type="number" step="0.01" value="0" /></div>
+            <div class="field"><label>Motivo</label>
+              <select id="lossReason">
+                <option>Merma</option><option>Robo</option><option>Vencimiento</option><option>Daño</option><option>Producción defectuosa</option><option>Error humano</option><option>Desastre</option><option>Otro</option>
+              </select>
+            </div>
+            <div class="field"><label>Descripción</label><input id="lossDescription" type="text" placeholder="Detalle del evento" /></div>
+            <div class="field"><label>Responsable</label><input id="lossResponsible" type="text" placeholder="Área o persona" /></div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="screen-head">
+            <div>
+              <h2 class="section-title">Gastos</h2>
+              <p class="section-sub">Categorías separadas correctamente sin mezclar listas.</p>
+            </div>
+            <button id="btnSaveExpense" class="success-btn">Guardar gasto</button>
+          </div>
+          <div class="modal-grid two">
+            <div class="field"><label>Fecha</label><input id="expDate" type="date" /></div>
+            <div class="field"><label>Grupo</label>
+              <select id="expGroup">
+                <option>Administrativos</option><option>Ventas</option><option>Financieros</option><option>Producción</option><option>CIF</option><option>MOD</option><option>MD</option><option>Logística</option><option>Distribución</option><option>Publicidad</option><option>Marketing</option><option>Donaciones</option><option>Tributos</option><option>Energía</option><option>Servicios</option>
+              </select>
+            </div>
+            <div class="field"><label>Subgrupo</label><select id="expSubgroup"></select></div>
+            <div class="field"><label>Monto</label><input id="expAmount" type="number" step="0.01" value="0" /></div>
+            <div class="field"><label>Documento</label><input id="expDocument" type="text" placeholder="Factura / recibo" /></div>
+            <div class="field"><label>Responsable</label><input id="expResponsible" type="text" placeholder="Área o persona" /></div>
+            <div class="field" style="grid-column:1/-1"><label>Descripción</label><input id="expDescription" type="text" placeholder="Detalle del gasto" /></div>
+          </div>
+        </article>
+      </div>
+
+      <article class="card" style="margin-top:14px">
+        <div class="screen-head">
+          <div>
+            <h2 class="section-title">Movimientos recientes</h2>
+            <p class="section-sub">Editar, duplicar o eliminar cualquier operación.</p>
+          </div>
+          <span class="chip">Edición contextual</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th><th>Tipo</th><th>Detalle</th><th>Entidad</th><th class="right">Cantidad</th><th class="right">Valor</th><th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="reportTable"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+    <section id="production" class="screen" style="margin-top:14px">
+      <div class="cards-2">
+        <article class="card">
+          <div class="screen-head">
+            <div>
+              <h2 class="section-title">Recetas / Bill of Materials</h2>
+              <p class="section-sub">Define materias primas, MOD, CIF y costos estimados.</p>
+            </div>
+            <button id="btnSaveRecipe" class="success-btn">Guardar receta</button>
+          </div>
+          <div class="modal-grid two">
+            <div class="field"><label>Producto terminado</label><select id="recipeProduct"></select></div>
+            <div class="field"><label>Nombre de la receta</label><input id="recipeName" type="text" placeholder="Receta cola 500ml" /></div>
+            <div class="field"><label>Tiempo estimado</label><input id="recipeTime" type="text" placeholder="1.5 horas" /></div>
+            <div class="field"><label>Costo MOD</label><input id="recipeMod" type="number" step="0.01" value="0" /></div>
+            <div class="field"><label>Costo CIF</label><input id="recipeCif" type="number" step="0.01" value="0" /></div>
+            <div class="field"><label>Observaciones</label><input id="recipeNotes" type="text" placeholder="Notas de producción" /></div>
+          </div>
+
+          <div class="screen-head" style="margin-top:12px">
+            <div>
+              <h3 class="section-title" style="font-size:16px">Insumos de la receta</h3>
+              <p class="section-sub">Añade cada materia prima requerida.</p>
+            </div>
+            <button id="btnAddRecipeItem" class="ghost-btn">+ Agregar insumo</button>
+          </div>
+          <div id="recipeItems" class="grid"></div>
+        </article>
+
+        <article class="card">
+          <div class="screen-head">
+            <div>
+              <h2 class="section-title">Producir lote</h2>
+              <p class="section-sub">Verifica disponibilidad, descuenta materias primas y actualiza kardex.</p>
+            </div>
+            <button id="btnRunProduction" class="success-btn">Ejecutar producción</button>
+          </div>
+          <div class="modal-grid two">
+            <div class="field"><label>Receta</label><select id="produceRecipe"></select></div>
+            <div class="field"><label>Cantidad a producir</label><input id="produceQty" type="number" step="0.01" value="0" /></div>
+            <div class="field"><label>Fecha</label><input id="produceDate" type="date" /></div>
+            <div class="field"><label>Documento</label><input id="produceDocument" type="text" placeholder="OP-0001" /></div>
+            <div class="field" style="grid-column:1/-1"><label>Nota</label><input id="produceNote" type="text" placeholder="Detalle del lote" /></div>
+          </div>
+          <div style="margin-top:12px" class="empty-state">Si falta una materia prima, el sistema mostrará exactamente cuál y cuánto falta.</div>
+        </article>
+      </div>
+
+      <article class="card" style="margin-top:14px">
+        <div class="screen-head">
+          <div>
+            <h2 class="section-title">Recetas guardadas</h2>
+            <p class="section-sub">Cada receta puede editarse, duplicarse o eliminarse.</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Receta</th><th>Producto terminado</th><th class="right">Insumos</th><th class="right">MOD</th><th class="right">CIF</th><th>Tiempo</th><th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="recipeTable"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+    <section id="reports" class="screen" style="margin-top:14px">
+      <div class="cards-2">
+        <article class="card">
+          <div class="screen-head">
+            <div>
+              <h2 class="section-title">Estado de resultados</h2>
+              <p class="section-sub">Se genera automáticamente con valores negativos visibles.</p>
+            </div>
+            <div class="row-actions">
+              <button id="btnExportCSV" class="ghost-btn">CSV</button>
+              <button id="btnExportXLS" class="ghost-btn">Excel</button>
+              <button id="btnExportPDF" class="ghost-btn">PDF</button>
+            </div>
+          </div>
+          <div id="statementList" class="grid"></div>
+        </article>
+
+        <article class="card">
+          <div class="screen-head">
+            <div>
+              <h2 class="section-title">Reportes y diagnóstico</h2>
+              <p class="section-sub">Inventario, kardex, compras, ventas, producción, gastos y pérdidas.</p>
+            </div>
+          </div>
+          <div class="summary-grid" id="dashboardStats"></div>
+          <div style="margin-top:12px" class="empty-state">La información persiste aunque cierres el navegador o reinicies el dispositivo.</div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <button class="fab" id="fab">+</button>
+  <div class="fab-menu" id="fabMenu">
+    <button class="pill-btn" data-fab-action="product">+ Nuevo producto</button>
+    <button class="pill-btn" data-fab-action="demo">Cargar demo</button>
+    <button class="pill-btn" data-fab-action="calc">Calculadora</button>
+    <button class="pill-btn" data-fab-action="calendar">Calendario</button>
+  </div>
+
+  <nav class="bottom-nav">
+    <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+    <button class="tab-btn" data-tab="inventory">Inventario</button>
+    <button class="tab-btn" data-tab="kardex">Kardex</button>
+    <button class="tab-btn" data-tab="operations">Operaciones</button>
+    <button class="tab-btn" data-tab="production">Producción</button>
+    <button class="tab-btn" data-tab="reports">Reportes</button>
+  </nav>
+
+  <div id="productModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-head">
+        <h3 class="modal-title">Producto</h3>
+        <button class="modal-close" data-close-modal="#productModal">✕</button>
+      </div>
+      <div class="product-form" id="productForm">
+        <div class="modal-grid two">
+          <div class="field"><label>Código</label><input id="pCode" type="text"></div>
+          <div class="field"><label>Nombre</label><input id="pName" type="text"></div>
+          <div class="field"><label>Descripción</label><input id="pDescription" type="text"></div>
+          <div class="field"><label>Descripción de unidad</label><input id="pUnitDescription" type="text" placeholder="kg, und, ltr, caja..." /></div>
+          <div class="field"><label>Tipo</label>
+            <select id="pType">
+              <option>Mercadería</option><option>Materia Prima Directa</option><option>Materia Prima Indirecta</option><option>Producto en Proceso</option><option>Producto Terminado</option><option>Suministro</option><option>Activo</option><option>Servicio</option>
+            </select>
+          </div>
+          <div class="field"><label>Categoría</label><input id="pCategory" type="text"></div>
+          <div class="field"><label>Costo unitario</label><input id="pCostUnit" type="number" step="0.01"></div>
+          <div class="field"><label>Precio de venta sin IGV</label><input id="pSaleNoTax" type="number" step="0.01"></div>
+          <div class="field"><label>Precio con IGV</label><input id="pSaleWithTax" type="number" step="0.01"></div>
+          <div class="field"><label>Stock inicial</label><input id="pStock" type="number" step="0.01"></div>
+          <div class="field"><label>Stock mínimo</label><input id="pMinStock" type="number" step="0.01"></div>
+          <div class="field"><label>Stock máximo</label><input id="pMaxStock" type="number" step="0.01"></div>
+          <div class="field"><label>Proveedor principal</label><input id="pSupplier" type="text"></div>
+          <div class="field" style="grid-column:1/-1"><label>Observaciones</label><textarea id="pObs" rows="3"></textarea></div>
+        </div>
+        <div class="modal-actions">
+          <button id="btnSaveProduct" class="primary-btn">Guardar producto</button>
+          <button id="btnCancelProduct" class="ghost-btn">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="opModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-head">
+        <h3 class="modal-title" id="opModalTitle">Editar movimiento</h3>
+        <button class="modal-close" id="btnCloseOp">✕</button>
+      </div>
+      <div id="opModalBody"></div>
+      <div class="modal-actions">
+        <button id="btnSaveOp" class="primary-btn">Guardar cambios</button>
+        <button id="btnCancelOp" class="ghost-btn">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="calcModal" class="modal">
+    <div class="modal-content" style="max-width:420px">
+      <div class="modal-head">
+        <h3 class="modal-title">Calculadora</h3>
+        <button class="modal-close" id="btnCalcClose">✕</button>
+      </div>
+      <input id="calcDisplay" class="calc-display" value="0" />
+      <div class="calc-keys" id="calcKeys">
+        <button data-key="C">C</button><button data-key="⌫">⌫</button><button data-key="(">(</button><button data-key=")">)</button>
+        <button data-key="7">7</button><button data-key="8">8</button><button data-key="9">9</button><button data-key="/">÷</button>
+        <button data-key="4">4</button><button data-key="5">5</button><button data-key="6">6</button><button data-key="*">×</button>
+        <button data-key="1">1</button><button data-key="2">2</button><button data-key="3">3</button><button data-key="-">−</button>
+        <button data-key="0">0</button><button data-key=".">.</button><button data-key="=">=</button><button data-key="+">+</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="calendarModal" class="modal">
+    <div class="modal-content" style="max-width:760px">
+      <div class="modal-head">
+        <h3 class="modal-title" id="calendarTitle">Calendario</h3>
+        <div class="row-actions">
+          <button id="btnPrevMonth" class="ghost-btn">◀</button>
+          <button id="btnNextMonth" class="ghost-btn">▶</button>
+          <button class="modal-close" id="btnCalClose">✕</button>
+        </div>
+      </div>
+      <div id="calendarGrid" class="calendar-grid"></div>
+    </div>
+  </div>
+
+  <div id="helpModal" class="modal">
+    <div class="modal-content" style="max-width:920px">
+      <div class="modal-head">
+        <h3 class="modal-title">Manual de ayuda</h3>
+        <button class="modal-close" id="btnHelpClose">✕</button>
+      </div>
+      <div class="grid">
+        <article class="card">
+          <h4 class="section-title">Cómo usarlo</h4>
+          <p class="section-sub">1) Carga la demo de chocolate o crea productos. 2) Registra compras. 3) Produce. 4) Vende. 5) Revisa Kardex y Estado de Resultados.</p>
+        </article>
+        <article class="card">
+          <h4 class="section-title">Validaciones inteligentes</h4>
+          <p class="section-sub">No deja vender más de lo disponible, avisa stock crítico, detecta pérdidas y calcula promedios automáticamente.</p>
+        </article>
+        <article class="card">
+          <h4 class="section-title">PWA y offline</h4>
+          <p class="section-sub">Incluye manifest, service worker, tema claro/oscuro, splash screen, iconos y almacenamiento persistente con localStorage. La demo está basada en el chocolate Sublime.</p>
+        </article>
+      </div>
+    </div>
+  </div>
+
+  <script id="demoChocolateData" type="application/json">
+{
+  "profile": "Sublime Clásico",
+  "product": {
+    "name": "Tableta de Chocolate con Leche y Maní \"Sublime Clásico\" (30 g)",
+    "brand": "Nestlé Perú S.A.",
+    "batch_units": 10000,
+    "unit_weight_g": 30,
+    "unit_cost_total_soles": 8625.5,
+    "unit_cost_soles": 0.86255,
+    "mp_total_soles": 5062.5,
+    "mod_total_soles": 1000.0,
+    "cif_total_soles": 2563.0
+  },
+  "components": {
+    "materia_prima_directa": [
+      {
+        "item": "Pasta de cacao",
+        "description": "Base del licor de cacao; principal insumo de la formulación del chocolate Sublime.",
+        "source_detail": "90 kg empleados en el lote de 10,000 tabletas (30 g c/u); costo total S/ 2,250.000",
+        "unit": "kg",
+        "raw_value": "S/. 25.00 / kg",
+        "quantity": 90.0,
+        "unit_cost_soles": 25.0,
+        "total_soles": 2.25
+      },
+      {
+        "item": "Manteca de cacao",
+        "description": "Aporta solidez a temperatura ambiente y fusión suave en boca (34–38 °C).",
+        "source_detail": "30 kg empleados en el lote; costo total S/ 1,200.000",
+        "unit": "kg",
+        "raw_value": "S/. 40.00 / kg",
+        "quantity": 30.0,
+        "unit_cost_soles": 40.0,
+        "total_soles": 1.2
+      },
+      {
+        "item": "Azúcar (sacarosa)",
+        "description": "Principal edulcorante; representa ≈50 % de la formulación.",
+        "source_detail": "105 kg empleados en el lote; costo total S/ 472.500",
+        "unit": "kg",
+        "raw_value": "S/. 4.50 / kg",
+        "quantity": 105.0,
+        "unit_cost_soles": 4.5,
+        "total_soles": 472.5
+      },
+      {
+        "item": "Leche entera en polvo",
+        "description": "Aporta suavidad, dulzura y valor nutricional al producto.",
+        "source_detail": "30 kg empleados en el lote; costo total S/ 540.000",
+        "unit": "kg",
+        "raw_value": "S/. 18.00 / kg",
+        "quantity": 30.0,
+        "unit_cost_soles": 18.0,
+        "total_soles": 540.0
+      },
+      {
+        "item": "Suero de leche en polvo",
+        "description": "Complemento lácteo utilizado en la formulación del chocolate con leche.",
+        "source_detail": "15 kg empleados en el lote; costo total S/ 150.000",
+        "unit": "kg",
+        "raw_value": "S/. 10.00 / kg",
+        "quantity": 15.0,
+        "unit_cost_soles": 10.0,
+        "total_soles": 150.0
+      },
+      {
+        "item": "Maní tostado en mitades",
+        "description": "Ingrediente distintivo de la variante clásica de Sublime; se incorpora tras el templado.",
+        "source_detail": "30 kg empleados en el lote; costo total S/ 450.000",
+        "unit": "kg",
+        "raw_value": "S/. 15.00 / kg",
+        "quantity": 30.0,
+        "unit_cost_soles": 15.0,
+        "total_soles": 450.0
+      }
+    ],
+    "mano_obra_directa": [
+      {
+        "item": "Operario de trituración y torrefacción",
+        "description": "Separa cáscara y nibs; desarrolla color, sabor y aroma del cacao mediante tostado.",
+        "source_detail": "8 horas asignadas en el lote; costo total S/ 100.000",
+        "unit": "hora",
+        "raw_value": "S/. 12.50 / hora",
+        "quantity": 8.0,
+        "unit_cost_soles": 12.5,
+        "total_soles": 100.0
+      },
+      {
+        "item": "Operario de molienda",
+        "description": "Muele las habas tostadas hasta obtener el licor de cacao.",
+        "source_detail": "8 horas asignadas en el lote; costo total S/ 100.000",
+        "unit": "hora",
+        "raw_value": "S/. 12.50 / hora",
+        "quantity": 8.0,
+        "unit_cost_soles": 12.5,
+        "total_soles": 100.0
+      },
+      {
+        "item": "Operario de mezclado y refinado",
+        "description": "Combina licor de cacao, manteca, azúcar y leche; reduce el tamaño de partícula.",
+        "source_detail": "12 horas asignadas en el lote; costo total S/ 168.000",
+        "unit": "hora",
+        "raw_value": "S/. 14.00 / hora",
+        "quantity": 12.0,
+        "unit_cost_soles": 14.0,
+        "total_soles": 168.0
+      },
+      {
+        "item": "Operario de conchado",
+        "description": "Amasa la mezcla por horas para eliminar acidez y desarrollar el sabor final.",
+        "source_detail": "24 horas asignadas en el lote; costo total S/ 336.000",
+        "unit": "hora",
+        "raw_value": "S/. 14.00 / hora",
+        "quantity": 24.0,
+        "unit_cost_soles": 14.0,
+        "total_soles": 336.0
+      },
+      {
+        "item": "Operario de templado e inclusión de maní",
+        "description": "Controla el enfriamiento (fase cristalina V) e incorpora el maní tostado.",
+        "source_detail": "8 horas asignadas en el lote; costo total S/ 104.000",
+        "unit": "hora",
+        "raw_value": "S/. 13.00 / hora",
+        "quantity": 8.0,
+        "unit_cost_soles": 13.0,
+        "total_soles": 104.0
+      },
+      {
+        "item": "Operarios de moldeo y empaque",
+        "description": "Da forma a la tableta de 30 g, enfría y envuelve el producto (2 operarios).",
+        "source_detail": "16 horas asignadas en el lote; costo total S/ 192.000",
+        "unit": "hora",
+        "raw_value": "S/. 12.00 / hora",
+        "quantity": 16.0,
+        "unit_cost_soles": 12.0,
+        "total_soles": 192.0
+      }
+    ],
+    "cif_moi": [
+      {
+        "item": "Supervisor de Producción",
+        "description": "Supervisión general del proceso productivo del lote.",
+        "source_detail": "Cuota asignada por lote de 10,000 tabletas",
+        "unit": "por lote",
+        "raw_value": "S/. 250.000 / lote",
+        "quantity": 10.0,
+        "unit_cost_soles": 250.0,
+        "total_soles": 10000.0
+      },
+      {
+        "item": "Técnico de Mantenimiento",
+        "description": "Mantenimiento de equipos de planta (refinadora, conchadora, etc.).",
+        "source_detail": "Cuota asignada por lote",
+        "unit": "por lote",
+        "raw_value": "S/. 150.000 / lote",
+        "unit_cost_soles": 150.0
+      },
+      {
+        "item": "Analista de Control de Calidad",
+        "description": "Verificación de variables críticas: temperatura, humedad, gramaje.",
+        "source_detail": "Cuota asignada por lote",
+        "unit": "por lote",
+        "raw_value": "S/. 120.000 / lote",
+        "unit_cost_soles": 120.0
+      }
+    ],
+    "cif_materiales_indirectos": [
+      {
+        "item": "Lecitina de soya",
+        "description": "Emulsionante que homogeneiza la mezcla y reduce la viscosidad.",
+        "source_detail": "1.5 kg empleados en el lote; costo total S/ 30.000",
+        "unit": "kg",
+        "raw_value": "S/. 20.00 / kg",
+        "quantity": 1.5,
+        "unit_cost_soles": 20.0,
+        "total_soles": 30.0
+      },
+      {
+        "item": "PGPR (poliglicerol polirricinoleato)",
+        "description": "Emulsionante complementario que mejora la fluidez del chocolate.",
+        "source_detail": "0.5 kg empleados en el lote; costo total S/ 22.500",
+        "unit": "kg",
+        "raw_value": "S/. 45.00 / kg",
+        "quantity": 0.5,
+        "unit_cost_soles": 45.0,
+        "total_soles": 22.5
+      },
+      {
+        "item": "Saborizante vainilla (vainillina)",
+        "description": "Refuerza el perfil sensorial del chocolate.",
+        "source_detail": "0.5 litros empleados en el lote; costo total S/ 30.000",
+        "unit": "litro",
+        "raw_value": "S/. 60.00 / litro",
+        "quantity": 0.5,
+        "unit_cost_soles": 60.0,
+        "total_soles": 30.0
+      },
+      {
+        "item": "Envolturas (flow-pack multilaminado)",
+        "description": "Papel aluminizado con envoltura impresa para el empaque individual.",
+        "source_detail": "10.5 millares empleados en el lote; costo total S/ 420.000",
+        "unit": "millar",
+        "raw_value": "S/. 40.00 / millar",
+        "quantity": 10.5,
+        "unit_cost_soles": 40.0,
+        "total_soles": 420.0
+      },
+      {
+        "item": "Cajas de cartón corrugado (displays de 24)",
+        "description": "Encajado del producto terminado antes del despacho.",
+        "source_detail": "420 unidades empleadas en el lote; costo total S/ 504.000",
+        "unit": "unidad",
+        "raw_value": "S/. 1.20 / unidad",
+        "quantity": 420.0,
+        "unit_cost_soles": 1.2,
+        "total_soles": 504.0
+      }
+    ],
+    "cif_otros": [
+      {
+        "item": "Energía eléctrica (equipos de planta)",
+        "description": "Alimenta tostadora, molino, refinadora, conchadora y moldeadora.",
+        "source_detail": "800 kWh consumidos en el lote; costo total S/ 600.000",
+        "unit": "kWh",
+        "raw_value": "S/. 0.75 / kWh",
+        "quantity": 800.0,
+        "unit_cost_soles": 0.75,
+        "total_soles": 600.0
+      },
+      {
+        "item": "Agua potable (limpieza y enfriamiento)",
+        "description": "Limpieza de equipos y enfriamiento del chocolate en túnel.",
+        "source_detail": "15 m3 empleados en el lote; costo total S/ 52.500",
+        "unit": "m3",
+        "raw_value": "S/. 3.50 / m3",
+        "quantity": 15.0,
+        "unit_cost_soles": 3.0,
+        "total_soles": 52.5
+      },
+      {
+        "item": "Depreciación (refinadora, conchadora, etc.)",
+        "description": "Depreciación de maquinaria empleada durante el proceso.",
+        "source_detail": "48 horas-máquina en el lote; costo total S/ 384.000",
+        "unit": "hora-máquina",
+        "raw_value": "S/. 8.00 / hora-máquina",
+        "quantity": 48.0,
+        "unit_cost_soles": 8.0,
+        "total_soles": 384.0
+      }
+    ],
+    "gastos_administrativos": [
+      {
+        "item": "Sueldo Gerencia y Administración",
+        "description": "Gestión general de la operación vinculada al lote.",
+        "source_detail": "Prorrateo por lote; costo total S/ 400.000",
+        "unit": "por lote",
+        "raw_value": "S/. 400.000 / lote",
+        "quantity": 400.0,
+        "unit_cost_soles": 400.0,
+        "total_soles": 400.0
+      },
+      {
+        "item": "Sueldo Contabilidad",
+        "description": "Registro y control contable de las operaciones del lote.",
+        "source_detail": "Prorrateo por lote; costo total S/ 250.000",
+        "unit": "por lote",
+        "raw_value": "S/. 250.000 / lote",
+        "quantity": 250.0,
+        "unit_cost_soles": 250.0,
+        "total_soles": 250.0
+      },
+      {
+        "item": "Servicios básicos de oficina (luz, agua, internet)",
+        "description": "Servicios administrativos generales.",
+        "source_detail": "Prorrateo por lote; costo total S/ 150.000",
+        "unit": "por lote",
+        "raw_value": "S/. 150.000 / lote",
+        "quantity": 150.0,
+        "unit_cost_soles": 150.0,
+        "total_soles": 150.0
+      },
+      {
+        "item": "Útiles y licencias de software",
+        "description": "Materiales de oficina y licencias empleadas en administración.",
+        "source_detail": "Prorrateo por lote; costo total S/ 100.000",
+        "unit": "por lote",
+        "raw_value": "S/. 100.000 / lote",
+        "quantity": 100.0,
+        "unit_cost_soles": 100.0,
+        "total_soles": 100.0
+      }
+    ],
+    "gastos_ventas": [
+      {
+        "item": "Publicidad y marketing",
+        "description": "Campaña de promoción de la marca Sublime.",
+        "source_detail": "Campaña prorrateada; costo total S/ 600.000",
+        "unit": "por lote",
+        "raw_value": "S/. 600.000 / lote",
+        "quantity": 600.0,
+        "unit_cost_soles": 600.0,
+        "total_soles": 600.0
+      },
+      {
+        "item": "Flete y distribución",
+        "description": "Transporte de las 10,000 unidades del lote a puntos de venta.",
+        "source_detail": "Transporte de 10,000 unidades; costo total S/ 350.000",
+        "unit": "por lote",
+        "raw_value": "S/. 350.000 / lote",
+        "quantity": 10.0,
+        "unit_cost_soles": 350.0,
+        "total_soles": 350.0
+      },
+      {
+        "item": "Comisiones fuerza de ventas",
+        "description": "Comisiones estimadas por la venta del lote.",
+        "source_detail": "Porcentaje estimado; costo total S/ 450.000",
+        "unit": "por lote",
+        "raw_value": "S/. 450.000 / lote",
+        "quantity": 450.0,
+        "unit_cost_soles": 450.0,
+        "total_soles": 450.0
+      }
+    ],
+    "gastos_financieros": [
+      {
+        "item": "Intereses y comisiones bancarias",
+        "description": "Línea de capital de trabajo usada para financiar la compra anticipada de materia prima estacional (cacao, azúcar).",
+        "source_detail": "Gasto financiero mensual estimado",
+        "unit": "mensual",
+        "raw_value": "S/. 2,100.00 / mes",
+        "unit_cost_soles": 2.1
+      }
+    ]
+  },
+  "notes": [
+    "Datos tomados de la estructura de costos del lote de 10,000 tabletas.",
+    "La demo debe reflejar chocolate, no gaseosa."
+  ]
+}
+  </script>
+  <script>
+    window.ERP_POCKET_DEMO = JSON.parse(document.getElementById('demoChocolateData').textContent);
+  </script>
+  <script src="db.js"></script>
+  <script src="charts.js"></script>
+  <script src="app.js"></script>
+
+  <script>
+    // Corrección final: ocultar splash siempre, incluso si algo tarda o falla al cargar.
+    (function () {
+      function hideSplash() {
+        const splash = document.getElementById('splash');
+        if (!splash) return;
+        splash.classList.add('hidden');
+        splash.style.display = 'none';
+      }
+
+      window.addEventListener('DOMContentLoaded', function () {
+        setTimeout(hideSplash, 600);
+      });
+
+      window.addEventListener('load', function () {
+        setTimeout(hideSplash, 0);
+      });
+
+      setTimeout(hideSplash, 5000);
+    })();
+  </script>
+</body>
+</html>
